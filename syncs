@@ -1,0 +1,356 @@
+#!/bin/bash
+
+get_os() {
+
+    local os=""
+    local kernelName=""
+    local distribution=""
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    kernelName="$(uname -s)"
+
+    if [ "$kernelName" == "Darwin" ]; then
+        os="macos"
+    elif [ "$kernelName" == "Linux" ]; then
+
+        distribution="$(lsb_release -si)"
+
+        if [ "$distribution" == "Ubuntu" ]; then
+            os="ubuntu"
+        elif [ "$distribution" == "Debian" ]; then
+            os="debian"
+        fi
+    fi
+
+    printf "%s" "$os"
+
+}
+
+
+define_colors() {
+
+    CYAN='\033[0;36m'
+    GREEN='\033[0;32m'
+
+    # No color, used to reset
+    NC='\033[0m'
+
+    RED='\033[0;31m'
+    YELLOW='\033[0;33m'
+
+}
+
+
+strip_directory() {
+
+    # Remove the trailing slash from a directory string
+
+    printf "%s" $(echo "$1" | sed -e "s/\(.\)\/$/\1/")
+    #                                   └─┬─┘└┬┘ └┬┘
+    #                                     │   │   └─ Print the first
+    #              First matching group ──┘   │       matching group
+    #              Contains all characters    │
+    #              before trailing slash      └─ Trailing slash
+
+}
+
+
+get_files_list() {
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    local root="$1"
+    local file_name="$2"
+
+    local OS=$(get_os)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    if [ "$OS" == "macos" ]; then
+
+        find $root -type f \
+            -not -path "$root/vim/*" \
+            -not -path "$root/.git/*" \
+            -exec md5 -r {} + | \
+
+            awk '{ printf("%s ", $1); system("stat -f \"%m %z %N\" " $2); }' | \
+        #                 └─────┬─┘   └─┬──┘             │  │  └─ file name
+        #       Print md5 hash ─┘       └─ Execute bash  │  └─ file size
+        #       in first column            commands      └─ file modification
+        #                                                   epoch timestamp
+
+            sed -n "s/^\([a-z0-9]\{32\}\) \([0-9]\{1,\}\) \([0-9]\{1,\}\) \(${root//\//\\/}\/\)\(.\)/\1 \2 \3 \5/p" | \
+        #              └────────┬───────┘ └─────┬───────┘ └──────┬──────┘ └───────┬───────────┘└─┬─┘  │  │  │  └─ relative file name
+        #              Group 1 ─┘      Group 2 ─┘       Group 3 ─┘       Group 4 ─┘     Group 5 ─┘    │  │  └─ file size
+        #              md5 hash        Timestamp        Size (bytes)     Root folder    Remaining     │  └─ file modification epoch timestamp
+        #                                                                               file path     └─ md5 hash
+
+            sort -d -f -k4
+        #         │  │  └─ Sort by file path column
+        #         │  └─ Ignore case
+        #         └─ Dictionary order
+
+    else
+
+        find $root -type f \
+            -not -path "$root/vim/*" \
+            -not -path "$root/.git/*" \
+            -exec md5sum {} + | \
+
+            awk '{ printf("%s ", $1); system("stat -c \"%Y %s %n\" " $2); }' | \
+        #                 └─────┬─┘   └─┬──┘             │  │  └─ file name
+        #       Print md5 hash ─┘       └─ Execute bash  │  └─ file size
+        #       in first column            commands      └─ file modification
+        #                                                   epoch timestamp
+
+            sed -n "s/^\([a-z0-9]\{32\}\) \([0-9]\{1,\}\) \([0-9]\{1,\}\) \(${root//\//\\/}\/\)\(.\)/\1 \2 \3 \5/p" | \
+        #              └────────┬───────┘ └─────┬───────┘ └──────┬──────┘ └───────┬───────────┘└─┬─┘  │  │  │  └─ relative file name
+        #              Group 1 ─┘      Group 2 ─┘       Group 3 ─┘       Group 4 ─┘     Group 5 ─┘    │  │  └─ file size
+        #              md5 hash        Timestamp        Size (bytes)     Root folder    Remaining     │  └─ file modification epoch timestamp
+        #                                                                               file path     └─ md5 hash
+
+            sort -d -f -k4
+        #         │  │  └─ Sort by file path column
+        #         │  └─ Ignore case
+        #         └─ Dictionary order
+
+    fi
+
+}
+
+
+generate_diff() {
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Initialize files
+
+    local master="$1"
+    local slave="$2"
+
+    local master_slave_file="$tmp_dir/$master-$slave"
+    local slave_master_file="$tmp_dir/$slave-$master"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Read the list of files from $master file
+
+    local master_list=$(cat "$tmp_dir/$master")
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Set the Internal Field Separator to new-line character
+    # This will help us iterate row wise
+
+    local OLDIFS=$IFS
+    IFS=$'\n'
+
+    for row_master in $master_list; do
+
+        local date_master=$(echo "$row_master" | awk '{ printf("%s", $2) }')
+        local file_master=$(echo "$row_master" | awk '{ printf("%s", $4) }')
+        local hash_master=$(echo "$row_master" | awk '{ printf("%s", $1) }')
+        local size_master=$(echo "$row_master" | awk '{ printf("%s", $3) }')
+
+        # Try to find this full relative file path in slave
+
+        local row_slave=$(grep " $file_master$" "$tmp_dir/$slave")
+
+        if [ -z "$row_slave" ]; then
+
+            # If there is no match in the slave file, it could mean the
+            # file is deleted in slave, or there is new file in master
+
+            printf "${GREEN}$date_master ${RED}---------- \
+${NC}$file_master\n" >> "$master_slave_file"
+
+        else
+
+            local date_slave=$(echo "$row_slave" | awk '{ printf("%s", $2) }')
+            local file_slave=$(echo "$row_slave" | awk '{ printf("%s", $4) }')
+            local hash_slave=$(echo "$row_slave" | awk '{ printf("%s", $1) }')
+            local size_slave=$(echo "$row_slave" | awk '{ printf("%s", $3) }')
+
+            # If hash of files in master and slave do not match,
+            # it means the file has been modified
+
+            if [ "$hash_master" != "$hash_slave" ]; then
+
+                # Try to find out if this file path has already been
+                # registered in remote-local or local-remote
+
+                local row_master_slave=$(grep "$file_master$" "$master_slave_file")
+                local row_slave_master=$(grep "$file_master$" "$slave_master_file")
+
+                # Only append the modified file path to approprite list
+                # if it has not been registered
+
+                if [ -z "$row_master_slave" ] \
+                    && [ -z "$row_slave_master" ]; then
+
+                    # If a file's modified date is more in remote than
+                    # in local, append it in remote-local file,
+                    # and vice versa
+
+                    if (( "$date_master" > "$date_slave" )); then
+                        printf "${GREEN}$date_master \
+${YELLOW}$date_slave ${NC}$file_master\n" >> "$master_slave_file"
+                    else
+                        printf "${GREEN}$date_slave \
+${YELLOW}$date_master ${NC}$file_master\n" >> "$slave_master_file"
+                    fi
+
+                fi
+
+            fi
+
+        fi
+
+    done
+
+    # Reset Internal Field Separator
+
+    IFS=$OLDIFS
+
+}
+
+
+verify_os() {
+
+    local OS=$(get_os)
+
+    if [ -z "$OS" ]; then
+        printf "Sorry, this script is intended only for Unix and Linux systems\n"
+        return 1
+    fi
+
+    return 0
+
+}
+
+
+save_files_list() {
+
+    if [ "$2" == "remote" ]; then
+        local list=$(ssh "$HOST" "$(typeset -f); get_files_list \"$1\"")
+    else
+        local list=$(get_files_list "$1")
+    fi
+
+    printf "$list" > "$tmp_dir/$2"
+
+}
+
+
+locate_config_file() {
+
+    local PWD="$1"
+
+    if [[ $PWD != "$HOME"* ]]; then
+
+        printf "syncs-config.json not found in any parent directory"
+
+    else
+
+        local config_file=$(find $PWD -type f -maxdepth 1 -name "syncs-config.json")
+
+        if [ ! -z "$config_file" ]; then
+
+            printf "%s" $config_file
+            return 0
+
+        else
+
+            PWD=$(dirname "$PWD")
+            locate_config_file "$PWD"
+
+        fi
+
+    fi
+
+    return 1
+
+}
+
+
+strip_quotes() {
+
+    # Remove quotes
+
+    printf "%s" $(echo "$1" | sed -e "s/\"//g")
+
+}
+
+
+initialize_configs() {
+
+    LOCAL=$(dirname "$CONFIG")
+    REMOTE=$(strip_quotes $(jq .remote "$CONFIG"))
+    HOST=$(strip_quotes $(jq .host "$CONFIG"))
+
+}
+
+
+main() {
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Bootstrap the script
+
+    define_colors
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Ensure the OS is supported
+
+    verify_os \
+        || exit 1
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    CONFIG=$(locate_config_file $(pwd))
+
+    if [ $? -ne 0 ]; then
+        printf "$CONFIG\n"
+        exit 1
+    fi
+
+    initialize_configs
+
+    tmp_dir=$(mktemp -d)
+
+    # Create remote-local & local-remote files and add headers
+    # We will store the diff of remote and local in these files
+
+    printf "${CYAN}remote local file\n" > "$tmp_dir/remote-local"
+    printf "${CYAN}local remote file\n" > "$tmp_dir/local-remote"
+    echo $tmp_dir
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Strip the extra '/' from the directories received in stdin
+
+    local_dir=$(strip_directory "$LOCAL")
+    remote_dir=$(strip_directory "$REMOTE")
+    echo $LOCAL $local_dir
+    echo $REMOTE $remote_dir
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Make a list of all files in an environment, along with metadata
+
+    save_files_list "$local_dir" "local"
+    save_files_list "$remote_dir" "remote"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Figure out which files are out of date in each environment
+
+    generate_diff "remote" "local"
+    generate_diff "local" "remote"
+
+}
+
+
+main "$@"
