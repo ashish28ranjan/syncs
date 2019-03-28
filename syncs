@@ -129,8 +129,8 @@ generate_diff() {
     local master="$1"
     local slave="$2"
 
-    local master_slave_file="$tmp_dir/$master-$slave"
-    local slave_master_file="$tmp_dir/$slave-$master"
+    local master_slave="$master-$slave"
+    local slave_master="$slave-$master"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -162,8 +162,10 @@ generate_diff() {
             # If there is no match in the slave file, it could mean the
             # file is deleted in slave, or there is new file in master
 
+            printf "$date_master ---------- \
+$file_master\n" >> "$tmp_dir/$master_slave"
             printf "${GREEN}$date_master ${RED}---------- \
-${NC}$file_master\n" >> "$master_slave_file"
+${NC}$file_master\n" >> "$tmp_dir/hr-$master_slave"
 
         else
 
@@ -180,8 +182,8 @@ ${NC}$file_master\n" >> "$master_slave_file"
                 # Try to find out if this file path has already been
                 # registered in remote-local or local-remote
 
-                local row_master_slave=$(grep "$file_master$" "$master_slave_file")
-                local row_slave_master=$(grep "$file_master$" "$slave_master_file")
+                local row_master_slave=$(grep "$file_master$" "$tmp_dir/$master_slave")
+                local row_slave_master=$(grep "$file_master$" "$tmp_dir/$slave_master")
 
                 # Only append the modified file path to approprite list
                 # if it has not been registered
@@ -194,11 +196,15 @@ ${NC}$file_master\n" >> "$master_slave_file"
                     # and vice versa
 
                     if (( "$date_master" > "$date_slave" )); then
+                        printf "$date_master \
+$date_slave $file_master\n" >> "$tmp_dir/$master_slave"
                         printf "${GREEN}$date_master \
-${YELLOW}$date_slave ${NC}$file_master\n" >> "$master_slave_file"
+${YELLOW}$date_slave ${NC}$file_master\n" >> "$tmp_dir/hr-$master_slave"
                     else
+                        printf "$date_slave \
+$date_master $file_master\n" >> "$tmp_dir/$slave_master"
                         printf "${GREEN}$date_slave \
-${YELLOW}$date_master ${NC}$file_master\n" >> "$slave_master_file"
+${YELLOW}$date_master ${NC}$file_master\n" >> "$tmp_dir/hr-$slave_master"
                     fi
 
                 fi
@@ -323,8 +329,11 @@ main() {
     # Create remote-local & local-remote files and add headers
     # We will store the diff of remote and local in these files
 
-    printf "${CYAN}remote local file\n" > "$tmp_dir/remote-local"
-    printf "${CYAN}local remote file\n" > "$tmp_dir/local-remote"
+    touch "$tmp_dir/remote-local"
+    touch "$tmp_dir/local-remote"
+
+    printf "${CYAN}remote local file\n" > "$tmp_dir/hr-remote-local"
+    printf "${CYAN}local remote file\n" > "$tmp_dir/hr-local-remote"
     echo $tmp_dir
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
