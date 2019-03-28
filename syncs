@@ -298,6 +298,24 @@ initialize_configs() {
 }
 
 
+sftp_get_files() {
+
+	cut -d " " -f3- "$tmp_dir/remote-local" | sed -n "s/^\(.*\)$/get "${remote_dir//\//\\/}"\/\1 "${local_dir//\//\\/}"\/\1/p" > "$tmp_dir/sftp-get"
+
+	sftp -b "$tmp_dir/sftp-get" "$HOST"
+
+}
+
+
+sftp_put_files() {
+
+	cut -d " " -f3- "$tmp_dir/local-remote" | sed -n "s/^\(.*\)$/put "${local_dir//\//\\/}"\/\1 "${remote_dir//\//\\/}"\/\1/p" > "$tmp_dir/sftp-put"
+
+	sftp -b "$tmp_dir/sftp-put" "$HOST"
+
+}
+
+
 main() {
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -358,6 +376,12 @@ main() {
 
     generate_diff "remote" "local"
     generate_diff "local" "remote"
+
+	cat "$tmp_dir/hr-remote-local"
+	cat "$tmp_dir/hr-local-remote"
+
+	# sftp_get_files
+	# sftp_put_files
 
 }
 
