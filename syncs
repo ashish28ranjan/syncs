@@ -431,6 +431,13 @@ in this directory"
 }
 
 
+delete_temp_directories() {
+
+    rm -r "$TMPDIR"syncs.*
+
+}
+
+
 install_dependencies() {
 
     if cmd_exists "jq"; then
@@ -495,6 +502,11 @@ main() {
 
     case $1 in
 
+        -c | cleanup )
+            delete_temp_directories
+            exit 1
+        ;;
+
         -cc | config )
             create_config_file "$(pwd)"
             exit 1
@@ -528,7 +540,7 @@ main() {
 
     initialize_configs
 
-    tmp_dir=$(mktemp -d)
+    tmp_dir=$(mktemp -d -t syncs)
 
     # Create remote-local & local-remote files and add headers
     # We will store the diff of remote and local in these files
