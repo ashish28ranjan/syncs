@@ -1,5 +1,9 @@
 #!/bin/bash
 
+cmd_exists() {
+    command -v "$1" &> /dev/null
+}
+
 print_error() {
     print_in_red "   [✖] $1 $2\n"
 }
@@ -409,6 +413,49 @@ create_config_file() {
 }
 
 
+install_dependencies() {
+
+    if cmd_exists "jq"; then
+        print_success "jq"
+    else
+
+        print_error "jq"
+        print_in_yellow "
+Install jq using the following commands\n
+ • Debian/Ubuntu
+     sudo apt-get install jq\n
+ • Fedora
+     sudo dnf install jq\n
+ • Arch
+     sudo pacman -Sy jq\n
+ • MacOS
+     brew install jq\n
+ • Others
+     Visit https://stedolan.github.io/jq/download\n\n"
+
+    fi
+
+    if cmd_exists "sftp"; then
+        print_success "sftp"
+    else
+
+        print_error "sftp"
+        print_in_yellow "
+Install sftp using the following commands\n
+ • Debian/Ubuntu
+     sudo apt-get install openssh-client\n
+ • Fedora
+     sudo dnf install openssh-client\n
+ • Arch
+     sudo pacman -Sy openssh-client\n
+ • Others
+     Please search on duckduckgo or your favourite search engine\n\n"
+
+    fi
+
+}
+
+
 main() {
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -423,6 +470,20 @@ main() {
 
     verify_os \
         || exit 1
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Execute commands based on arguments
+
+    case $1 in
+        install )
+            install_dependencies
+            exit 1
+        ;;
+        * )
+            print_in_red "Please enter a valid command\n"
+            exit 1
+    esac
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
