@@ -419,11 +419,12 @@ create_config_file() {
 }"\
         > "$PWD/syncs-config.json"
 
-        print_success "syncs-config.json created\n"
+        print_success "syncs-config.json created in this directory"
 
     else
 
-        print_warning "syncs-config.json already exists\n"
+        print_warning "syncs-config.json is already present \
+in this directory"
 
     fi
 
@@ -493,18 +494,27 @@ main() {
     # Execute commands based on arguments
 
     case $1 in
+
+        -cc | config )
+            create_config_file "$(pwd)"
+            exit 1
+        ;;
+
         -h | help )
             print_help
             exit 1
         ;;
+
         -i | install )
             install_dependencies
             exit 1
         ;;
+
         * )
             print_in_red "Please enter a valid command\n"
             print_help
             exit 1
+
     esac
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
