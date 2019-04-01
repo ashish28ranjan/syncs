@@ -398,6 +398,12 @@ create_config_file() {
 }"\
         > "$PWD/syncs-config.json"
 
+        print_success "syncs-config.json created\n"
+
+    else
+
+        print_warning "syncs-config.json already exists\n"
+
     fi
 
 }
