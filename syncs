@@ -316,6 +316,31 @@ sftp_put_files() {
 }
 
 
+create_config_file() {
+
+    local PWD="$1"
+
+    # Check if syncs-config.json exists in the current directory
+
+    local config_file=$(find $PWD -maxdepth 1 -type f -name "syncs-config.json")
+
+    # Create this file and put relevant keys in it if
+    # the file does not exist, or the file is empty
+
+    if [ -z "$config_file" ] || [ -z "$(cat $config_file)" ]; then
+
+        printf "%s\n" \
+"{
+    \"remote\": \"/absolute/path/to/repo\",
+    \"host\": \"example\"
+}"\
+        > "$PWD/syncs-config.json"
+
+    fi
+
+}
+
+
 main() {
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
