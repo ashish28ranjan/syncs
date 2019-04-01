@@ -481,53 +481,7 @@ Install sftp using the following commands\n
 }
 
 
-main() {
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # Bootstrap the script
-
-    define_colors
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # Ensure the OS is supported
-
-    verify_os \
-        || exit 1
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # Execute commands based on arguments
-
-    case $1 in
-
-        -c | cleanup )
-            delete_temp_directories
-            exit 1
-        ;;
-
-        -cc | config )
-            create_config_file "$(pwd)"
-            exit 1
-        ;;
-
-        -h | help )
-            print_help
-            exit 1
-        ;;
-
-        -i | install )
-            install_dependencies
-            exit 1
-        ;;
-
-        * )
-            print_in_red "Please enter a valid command\n"
-            print_help
-            exit 1
-
-    esac
+show_diff() {
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -577,6 +531,62 @@ main() {
 
     cat "$tmp_dir/hr-remote-local"
     cat "$tmp_dir/hr-local-remote"
+
+}
+
+
+main() {
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Bootstrap the script
+
+    define_colors
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Ensure the OS is supported
+
+    verify_os \
+        || exit 1
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Execute commands based on arguments
+
+    case $1 in
+
+        -c | cleanup )
+            delete_temp_directories
+            exit 1
+        ;;
+
+        -cc | config )
+            create_config_file "$(pwd)"
+            exit 1
+        ;;
+
+        d | diff )
+            show_diff "$@"
+            exit 1
+        ;;
+
+        -h | help )
+            print_help
+            exit 1
+        ;;
+
+        -i | install )
+            install_dependencies
+            exit 1
+        ;;
+
+        * )
+            print_in_red "Please enter a valid command\n"
+            print_help
+            exit 1
+
+    esac
 
     # sftp_get_files
     # sftp_put_files
