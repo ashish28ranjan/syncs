@@ -65,6 +65,23 @@ print_warning() {
     print_in_yellow "   [!] $1\n"
 }
 
+print_help() {
+	cat << EOF
+Usage: syncs [parameters]
+
+This script provides repository syncing capabilities using sftp.
+
+Params:
+  -h | help         Show help
+  -i | install      Display install instructions
+
+Dependencies:
+ • jq
+ • sftp
+
+EOF
+}
+
 
 get_os() {
 
@@ -476,12 +493,17 @@ main() {
     # Execute commands based on arguments
 
     case $1 in
+        -h | help )
+            print_help
+            exit 1
+        ;;
         install )
             install_dependencies
             exit 1
         ;;
         * )
             print_in_red "Please enter a valid command\n"
+            print_help
             exit 1
     esac
 
