@@ -497,7 +497,7 @@ main() {
             print_help
             exit 1
         ;;
-        install )
+        -i | install )
             install_dependencies
             exit 1
         ;;
