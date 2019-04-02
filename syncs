@@ -494,7 +494,7 @@ show_diff() {
 
     initialize_configs
 
-    tmp_dir=$(mktemp -d -t syncs)
+    tmp_dir=$(mktemp -d -t syncs.XXXX)
 
     # Create remote-local & local-remote files and add headers
     # We will store the diff of remote and local in these files
