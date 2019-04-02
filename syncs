@@ -530,9 +530,6 @@ show_diff() {
     generate_diff "remote" "local"
     generate_diff "local" "remote"
 
-    cat "$tmp_dir/hr-remote-local"
-    cat "$tmp_dir/hr-local-remote"
-
 }
 
 
@@ -569,6 +566,8 @@ main() {
 
         "" | d | diff )
             show_diff "$@"
+            cat "$tmp_dir/hr-remote-local"
+            cat "$tmp_dir/hr-local-remote"
             exit 1
         ;;
 
