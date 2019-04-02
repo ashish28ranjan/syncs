@@ -566,7 +566,7 @@ main() {
             exit 1
         ;;
 
-        d | diff )
+        "" | d | diff )
             show_diff "$@"
             exit 1
         ;;
