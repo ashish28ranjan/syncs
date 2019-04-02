@@ -581,15 +581,26 @@ main() {
             exit 1
         ;;
 
+        pl | pull )
+            show_diff "$@"
+            cat "$tmp_dir/hr-remote-local"
+            sftp_get_files
+            exit 1
+        ;;
+
+        pu | push )
+            show_diff "$@"
+            cat "$tmp_dir/hr-local-remote"
+            sftp_put_files
+            exit 1
+        ;;
+
         * )
             print_in_red "Please enter a valid command\n"
             print_help
             exit 1
 
     esac
-
-    # sftp_get_files
-    # sftp_put_files
 
 }
 
