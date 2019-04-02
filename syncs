@@ -245,10 +245,11 @@ generate_diff() {
             # If there is no match in the slave file, it could mean the
             # file is deleted in slave, or there is new file in master
 
-            printf "$date_master ---------- \
-$file_master\n" >> "$tmp_dir/$master_slave"
-            printf "${GREEN}$date_master ${RED}---------- \
-${NC}$file_master\n" >> "$tmp_dir/hr-$master_slave"
+            printf "$date_master ---------- $file_master\n" \
+                >> "$tmp_dir/$master_slave"
+            printf "${GREEN}%s ${CYAN}┃ ${RED}------------ ${CYAN}┃ ${NC}$file_master\n" \
+                $(date -j -f "%s" "$date_master" "+%d-%b %H:%M") \
+                >> "$tmp_dir/hr-$master_slave"
 
         else
 
@@ -279,15 +280,27 @@ ${NC}$file_master\n" >> "$tmp_dir/hr-$master_slave"
                     # and vice versa
 
                     if (( "$date_master" > "$date_slave" )); then
-                        printf "$date_master \
-$date_slave $file_master\n" >> "$tmp_dir/$master_slave"
-                        printf "${GREEN}$date_master \
-${YELLOW}$date_slave ${NC}$file_master\n" >> "$tmp_dir/hr-$master_slave"
+
+                        printf "$date_master $date_slave $file_master\n"\
+                            >> "$tmp_dir/$master_slave"
+
+                        printf "${GREEN}%s ${CYAN}┃ ${YELLOW}%s ${CYAN}┃ \
+${NC}$file_master\n" \
+                            $(date -j -f "%s" "$date_master" "+%d-%b %H:%M") \
+                            $(date -j -f "%s" "$date_slave" "+%d-%b %H:%M") \
+                            >> "$tmp_dir/hr-$master_slave"
+
                     else
-                        printf "$date_slave \
-$date_master $file_master\n" >> "$tmp_dir/$slave_master"
-                        printf "${GREEN}$date_slave \
-${YELLOW}$date_master ${NC}$file_master\n" >> "$tmp_dir/hr-$slave_master"
+
+                        printf "$date_slave $date_master $file_master\n"\
+                            >> "$tmp_dir/$slave_master"
+
+                        printf "${GREEN}%s ${CYAN}┃ ${YELLOW}%s ${CYAN}┃ \
+${NC}$file_master\n" \
+                            $(date -j -f "%s" "$date_slave" "+%d-%b %H:%M") \
+                            $(date -j -f "%s" "$date_master" "+%d-%b %H:%M") \
+                            >> "$tmp_dir/hr-$slave_master"
+
                     fi
 
                 fi
@@ -503,8 +516,12 @@ show_diff() {
     touch "$tmp_dir/remote-local"
     touch "$tmp_dir/local-remote"
 
-    printf "${CYAN}remote local file\n" > "$tmp_dir/hr-remote-local"
-    printf "${CYAN}local remote file\n" > "$tmp_dir/hr-local-remote"
+    printf "${CYAN}   remote    ┃    local     ┃     file\n" > "$tmp_dir/hr-remote-local"
+    printf "${CYAN}━━━━━━━━━━━━━╋━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-remote-local"
+
+    printf "${CYAN}   local     ┃    remote    ┃    file\n" > "$tmp_dir/hr-local-remote"
+    printf "${CYAN}━━━━━━━━━━━━━╋━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-local-remote"
+
     echo $tmp_dir
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -567,6 +584,7 @@ main() {
         "" | d | diff )
             show_diff "$@"
             cat "$tmp_dir/hr-remote-local"
+            printf "\n\n"
             cat "$tmp_dir/hr-local-remote"
             exit 1
         ;;
