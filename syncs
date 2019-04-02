@@ -433,7 +433,8 @@ in this directory"
 
 delete_temp_directories() {
 
-    rm -r "$TMPDIR"syncs.*
+    tmp_path=$(dirname $(mktemp -d -u))
+    rm -r "$tmp_path"/syncs.* &> /dev/null
 
 }
 
