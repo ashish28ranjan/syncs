@@ -653,6 +653,7 @@ main() {
             cat "$tmp_dir/hr-remote-local"
             printf "\n\n"
             cat "$tmp_dir/hr-local-remote"
+            printf "\n"
             exit 1
         ;;
 
