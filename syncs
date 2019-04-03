@@ -141,7 +141,7 @@ strip_directory() {
 
 create_ignore_query() {
 
-    printf "%s" "($( jq .ignore[] "$1/syncs-config.json" -rM | \
+    printf "%s" "($( jq 'select(.ignore) | .ignore[]' "$1/syncs-config.json" -rM | \
         sed "s/\(.\)\(\/*\)$/\1/" | \
         sed 's@[][\\|^$.*+?{}()]@\\&@g' | \
         paste -sd '|' - ))"
