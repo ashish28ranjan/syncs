@@ -485,7 +485,15 @@ create_config_file() {
         printf "%s\n" \
 "{
     \"remote\": \"/absolute/path/to/repo\",
-    \"host\": \"example\"
+    \"host\": \"example\",
+    \"ignore\": [
+        \".DS_Store\",
+        \".bzr\",
+        \".git\",
+        \".hg\",
+        \"Thumbs.db\",
+        \"syncs-config.json\"
+    ]
 }"\
         > "$PWD/syncs-config.json"
 
