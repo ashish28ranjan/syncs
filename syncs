@@ -139,12 +139,23 @@ strip_directory() {
 }
 
 
+create_ignore_query() {
+
+    printf "%s" "($( jq .ignore[] "$1/syncs-config.json" -rM | \
+        sed "s/\(.\)\(\/*\)$/\1/" | \
+        sed 's@[][\\|^$.*+?{}()]@\\&@g' | \
+        paste -sd '|' - ))"
+
+}
+
+
 get_files_list() {
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     local root="$1"
     local file_name="$2"
+    local ignore_query="$3"
 
     local OS=$(get_os)
 
@@ -152,9 +163,13 @@ get_files_list() {
 
     if [ "$OS" == "macos" ]; then
 
-        find $root -type f \
-            -not -path "$root/vim/*" \
-            -not -path "$root/.git/*" \
+        # Ignore some paths when using find
+        # https://unix.stackexchange.com/a/510236/308121
+
+        find -E "$root" -regex \
+            "$root/$ignore_query" \
+            -prune -o \
+            \( -type f \) \
             -exec md5 -r {} + | \
 
             awk '{ printf("%s ", $1); system("stat -f \"%m %z %N\" " $2); }' | \
@@ -176,9 +191,13 @@ get_files_list() {
 
     else
 
-        find $root -type f \
-            -not -path "$root/vim/*" \
-            -not -path "$root/.git/*" \
+        # Ignore some paths when using find
+        # https://unix.stackexchange.com/a/510236/308121
+
+        find "$root" -regextype posix-extended -regex \
+            "$root/$ignore_query" \
+            -prune -o \
+            \( -type f \) \
             -exec md5sum {} + | \
 
             awk '{ printf("%s ", $1); system("stat -c \"%Y %s %n\" " $2); }' | \
@@ -373,9 +392,9 @@ verify_os() {
 save_files_list() {
 
     if [ "$2" == "remote" ]; then
-        local list=$(ssh "$HOST" "$(typeset -f); get_files_list \"$1\"")
+        local list=$(ssh "$HOST" "$(typeset -f); get_files_list \"$1\" \"$2\" \"$3\"")
     else
-        local list=$(get_files_list "$1")
+        local list=$(get_files_list "$@")
     fi
 
     printf "$list" > "$tmp_dir/$2"
@@ -560,7 +579,7 @@ show_diff() {
     printf "${CYAN}    local     ┃    remote    ┃    file\n" > "$tmp_dir/hr-local-remote"
     printf "${CYAN}━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-local-remote"
 
-    echo $tmp_dir
+    printf "TMP_DIR: %s\n\n" $tmp_dir
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -568,15 +587,17 @@ show_diff() {
 
     local_dir=$(strip_directory "$LOCAL")
     remote_dir=$(strip_directory "$REMOTE")
-    echo $LOCAL $local_dir
-    echo $REMOTE $remote_dir
+    printf "Local:   %s\n" $local_dir
+    printf "Remote:  %s\n\n" $remote_dir
+
+    IGNORE_QUERY=$(create_ignore_query "$local_dir")
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # Make a list of all files in an environment, along with metadata
 
-    save_files_list "$local_dir" "local"
-    save_files_list "$remote_dir" "remote"
+    save_files_list "$local_dir" "local" "$IGNORE_QUERY"
+    save_files_list "$remote_dir" "remote" "$IGNORE_QUERY"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
