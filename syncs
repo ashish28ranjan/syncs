@@ -628,7 +628,7 @@ show_diff() {
     printf "${CYAN}       local         ┃       remote        ┃       file\n" > "$tmp_dir/hr-local-remote"
     printf "${CYAN}━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-local-remote"
 
-    printf "TMP_DIR: %s\n\n" $tmp_dir
+    printf "\nTMP_DIR: %s\n\n" $tmp_dir
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
