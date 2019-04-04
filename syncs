@@ -481,8 +481,11 @@ initialize_configs() {
 
 sftp_get_files() {
 
+    cut -d " " -f3- "$tmp_dir/remote-local" | sed -n "s/^\(.*\)$/"${local_dir//\//\\/}"\/\1/p" | awk '{ system("dirname " $1); }' | sort -u | sed -n "s/^\(.*\)$/mkdir -p \1/p" > "$tmp_dir/ssh-get"
+
     cut -d " " -f3- "$tmp_dir/remote-local" | sed -n "s/^\(.*\)$/get "${remote_dir//\//\\/}"\/\1 "${local_dir//\//\\/}"\/\1/p" > "$tmp_dir/sftp-get"
 
+    bash "$tmp_dir/ssh-get"
     sftp -b "$tmp_dir/sftp-get" "$HOST"
 
 }
@@ -490,8 +493,11 @@ sftp_get_files() {
 
 sftp_put_files() {
 
+    cut -d " " -f3- "$tmp_dir/local-remote" | sed -n "s/^\(.*\)$/"${remote_dir//\//\\/}"\/\1/p" | awk '{ system("dirname " $1); }' | sort -u | sed -n "s/^\(.*\)$/mkdir -p \1/p" > "$tmp_dir/ssh-put"
+
     cut -d " " -f3- "$tmp_dir/local-remote" | sed -n "s/^\(.*\)$/put "${local_dir//\//\\/}"\/\1 "${remote_dir//\//\\/}"\/\1/p" > "$tmp_dir/sftp-put"
 
+    ssh "$HOST" 'bash -s' < "$tmp_dir/ssh-put"
     sftp -b "$tmp_dir/sftp-put" "$HOST"
 
 }
