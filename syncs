@@ -72,11 +72,18 @@ Usage: syncs [parameters]
 This script provides repository syncing capabilities using sftp.
 
 Params:
-  -h | help         Show help
-  -i | install      Display install instructions
+  -c  | cleanup      Delete temp directories
+  -cc | config       Create config file in the current directory
+  -h  | help         Show help
+  -i  | install      Display install instructions
+
+   d  | diff         Show difference between local & remote
+  pl  | pull         Pull changes from remote to local
+  pu  | push         Push changes from local to remote
 
 Dependencies:
- • jq
+ • bash 4.0+
+ • jq 1.4+
  • sftp
 
 EOF
