@@ -222,17 +222,40 @@ get_files_list() {
 }
 
 
+format_string_length () {
+
+    local str="$1"
+    local max_len="$2"
+
+    while [ "${#str}" -le "$max_len" ]; do
+        str="$str "
+    done
+
+    printf "%s" "$str"
+
+}
+
+
 parse_size() {
 
     local -i bytes=$1;
+    local file_size="$bytes"
 
     if [[ $bytes -lt 1024 ]]; then
-        echo "${bytes}"
+        file_size="${bytes}"
     elif [[ $bytes -lt 1048576 ]]; then
-        echo "$(( (bytes + 1023)/1024 )) K"
+        file_size="$(( (bytes + 1023)/1024 ))K"
+    elif [[ $bytes -lt 1073741824 ]]; then
+        file_size="$(( (bytes + 1048575)/1048576 ))M"
+    elif [[ $bytes -lt 1099511627776 ]]; then
+        file_size="$(( (bytes + 1073741823)/1073741824 ))G"
+    elif [[ $bytes -lt 1125899906842624 ]]; then
+        file_size="$(( (bytes + 1099511627775)/1099511627776 ))P"
     else
-        echo "$(( (bytes + 1048575)/1048576 )) M"
+        file_size="$(( (bytes + 1125899906842623)/1125899906842624 ))E"
     fi
+
+    printf "%s" $(format_string_length "($file_size)" 5)
 
 }
 
@@ -304,8 +327,9 @@ generate_diff() {
 
             printf "$date_master ---------- $file_master\n" \
                 >> "$tmp_dir/$master_slave"
-            printf "${GREEN} %s ${CYAN}┃ ${RED}------------ ${CYAN}┃ ${NC}$file_master\n" \
+            printf "${GREEN} %s %s ${CYAN}┃ ${RED}------------ (-)    ${CYAN}┃ ${NC}$file_master\n" \
                 $(parse_date "$date_master") \
+                $(parse_size "$size_master") \
                 >> "$tmp_dir/hr-$master_slave"
 
         else
@@ -341,10 +365,12 @@ generate_diff() {
                         printf "$date_master $date_slave $file_master\n"\
                             >> "$tmp_dir/$master_slave"
 
-                        printf "${GREEN} %s ${CYAN}┃ ${YELLOW}%s ${CYAN}┃ \
+                        printf "${GREEN} %s %s ${CYAN}┃ ${YELLOW}%s %s ${CYAN}┃ \
 ${NC}$file_master\n" \
                             $(parse_date "$date_master") \
+                            $(parse_size "$size_master") \
                             $(parse_date "$date_slave") \
+                            $(parse_size "$size_slave") \
                             >> "$tmp_dir/hr-$master_slave"
 
                     else
@@ -352,10 +378,12 @@ ${NC}$file_master\n" \
                         printf "$date_slave $date_master $file_master\n"\
                             >> "$tmp_dir/$slave_master"
 
-                        printf "${GREEN} %s ${CYAN}┃ ${YELLOW}%s ${CYAN}┃ \
+                        printf "${GREEN} %s %s ${CYAN}┃ ${YELLOW}%s %s ${CYAN}┃ \
 ${NC}$file_master\n" \
                             $(parse_date "$date_slave") \
+                            $(parse_size "$size_slave") \
                             $(parse_date "$date_master") \
+                            $(parse_size "$size_master") \
                             >> "$tmp_dir/hr-$slave_master"
 
                     fi
@@ -581,11 +609,11 @@ show_diff() {
     touch "$tmp_dir/remote-local"
     touch "$tmp_dir/local-remote"
 
-    printf "${CYAN}    remote    ┃    local     ┃     file\n" > "$tmp_dir/hr-remote-local"
-    printf "${CYAN}━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-remote-local"
+    printf "${CYAN}       remote        ┃       local         ┃       file\n" > "$tmp_dir/hr-remote-local"
+    printf "${CYAN}━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-remote-local"
 
-    printf "${CYAN}    local     ┃    remote    ┃     file\n" > "$tmp_dir/hr-local-remote"
-    printf "${CYAN}━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-local-remote"
+    printf "${CYAN}       local         ┃       remote        ┃       file\n" > "$tmp_dir/hr-local-remote"
+    printf "${CYAN}━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━\n" >> "$tmp_dir/hr-local-remote"
 
     printf "TMP_DIR: %s\n\n" $tmp_dir
 
